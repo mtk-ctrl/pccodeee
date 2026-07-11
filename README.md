@@ -26,12 +26,14 @@ Corner Blocks は、角だけで自分の色をつなげて陣地を広げるブ
 
 ```text
 .
-├── index.html
-├── styles.css
-├── script.js
+├── index.html   # これだけで遊べる単体版
+├── styles.css   # 分離版のスタイル控え
+├── script.js    # 分離版のロジック控え
 └── README.md
 ```
 
 ## 動かし方
 
-`index.html` をブラウザで開くだけで動きます。GitHub Pages を使う場合は、Pages の公開元を `main` ブランチの root に設定してください。
+`index.html` をブラウザで開くだけで動きます。CSSとJavaScriptは `index.html` 内にも埋め込んであるので、ファイル単体で開いても盤面と手駒が表示されます。
+
+GitHub Pages を使う場合は、Pages の公開元を `main` ブランチの root に設定してください。

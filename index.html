@@ -3,132 +3,82 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PC Codee Lab</title>
+  <title>Corner Blocks</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app-shell">
-    <section class="hero" aria-labelledby="app-title">
-      <div class="hero-copy">
-        <p class="eyebrow">Build planner</p>
-        <h1 id="app-title">PC Codee Lab</h1>
-        <p class="lead">予算と用途から、ちょうどいいPC構成をざっくり組み立てるミニアプリ。</p>
-        <div class="hero-actions" role="group" aria-label="プリセット">
-          <button class="preset-button is-active" data-preset="balanced">Balanced</button>
-          <button class="preset-button" data-preset="gaming">Gaming</button>
-          <button class="preset-button" data-preset="creator">Creator</button>
-          <button class="preset-button" data-preset="compact">Compact</button>
-        </div>
+  <main class="game-shell">
+    <header class="game-header">
+      <div>
+        <p class="eyebrow">PC board game</p>
+        <h1>Corner Blocks</h1>
+        <p class="lead">角だけでつなげて陣地を広げる、1人用のブロック配置ゲーム。</p>
       </div>
-      <div class="pc-visual" aria-label="PC構成の状態表示" role="img">
-        <div class="monitor">
-          <div class="screen-grid">
-            <span></span><span></span><span></span><span></span>
-            <span></span><span></span><span></span><span></span>
-            <span></span><span></span><span></span><span></span>
-          </div>
+      <div class="scoreboard" aria-label="スコア">
+        <div class="score-card human-score">
+          <span>You</span>
+          <strong id="human-score">0</strong>
         </div>
-        <div class="tower">
-          <span class="status-light"></span>
-          <span class="vent vent-a"></span>
-          <span class="vent vent-b"></span>
-          <span class="vent vent-c"></span>
-        </div>
-      </div>
-    </section>
-
-    <section class="workspace" aria-label="PC構成シミュレーター">
-      <form class="panel controls" id="build-form">
-        <div class="panel-heading">
-          <p class="eyebrow">Controls</p>
-          <h2>構成を調整</h2>
-        </div>
-
-        <label class="field">
-          <span>用途</span>
-          <select id="purpose">
-            <option value="daily">普段使い</option>
-            <option value="game">ゲーム</option>
-            <option value="creative">動画・制作</option>
-            <option value="study">学習・開発</option>
-          </select>
-        </label>
-
-        <label class="range-field">
-          <span>予算 <strong id="budget-value"></strong></span>
-          <input id="budget" type="range" min="70000" max="320000" step="10000" value="160000">
-        </label>
-
-        <label class="field">
+        <div class="score-card cpu-score">
           <span>CPU</span>
-          <select id="cpu"></select>
-        </label>
-
-        <label class="field">
-          <span>GPU</span>
-          <select id="gpu"></select>
-        </label>
-
-        <div class="split-fields">
-          <label class="field">
-            <span>メモリ</span>
-            <select id="ram"></select>
-          </label>
-          <label class="field">
-            <span>SSD</span>
-            <select id="storage"></select>
-          </label>
+          <strong id="cpu-score">0</strong>
         </div>
-
-        <label class="field">
-          <span>ケース</span>
-          <select id="caseType"></select>
-        </label>
-      </form>
-
-      <section class="panel result" aria-live="polite">
-        <div class="score-row">
-          <div>
-            <p class="eyebrow">Score</p>
-            <h2 id="score">0</h2>
-          </div>
-          <div class="score-ring" id="score-ring"><span id="score-grade">B</span></div>
-        </div>
-
-        <div class="metrics">
-          <div>
-            <span>合計</span>
-            <strong id="total-price"></strong>
-          </div>
-          <div>
-            <span>消費電力目安</span>
-            <strong id="power"></strong>
-          </div>
-          <div>
-            <span>快適度</span>
-            <strong id="comfort"></strong>
-          </div>
-        </div>
-
-        <div class="bars" id="bars"></div>
-
-        <div class="advice" id="advice"></div>
-
-        <div class="button-row">
-          <button type="button" id="save-build">保存</button>
-          <button type="button" id="copy-build">構成コピー</button>
-        </div>
-      </section>
-    </section>
-
-    <section class="saved-section" aria-labelledby="saved-title">
-      <div class="section-heading">
-        <p class="eyebrow">Garage</p>
-        <h2 id="saved-title">保存した構成</h2>
       </div>
-      <div class="saved-list" id="saved-list"></div>
+    </header>
+
+    <section class="game-layout" aria-label="Corner Blocks game">
+      <section class="board-panel">
+        <div class="board-toolbar">
+          <div>
+            <p class="eyebrow">Board</p>
+            <h2 id="turn-label">あなたの番</h2>
+          </div>
+          <div class="turn-chip" id="turn-chip">Place a piece</div>
+        </div>
+        <div class="board" id="board" aria-label="14 x 14 の盤面"></div>
+      </section>
+
+      <aside class="side-panel">
+        <section class="panel-section">
+          <div class="section-title">
+            <p class="eyebrow">Piece</p>
+            <h2 id="selected-piece-name">選択中</h2>
+          </div>
+          <div class="piece-preview" id="piece-preview" aria-label="選択中のピース"></div>
+          <div class="tool-row" aria-label="操作">
+            <button type="button" id="rotate-piece">回転</button>
+            <button type="button" id="flip-piece">反転</button>
+            <button type="button" id="pass-turn">パス</button>
+          </div>
+          <button type="button" class="primary-action" id="new-game">新しいゲーム</button>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title">
+            <p class="eyebrow">Rules</p>
+            <h2>置き方</h2>
+          </div>
+          <ul class="rules-list">
+            <li>最初のピースは自分のスタート角を埋める。</li>
+            <li>2手目以降は自分の色と角で接する。</li>
+            <li>自分の色とは辺で接してはいけない。</li>
+            <li>置けなくなったらパス。多く埋めた方が勝ち。</li>
+          </ul>
+        </section>
+
+        <section class="panel-section pieces-section">
+          <div class="section-title">
+            <p class="eyebrow">Tray</p>
+            <h2>手駒</h2>
+          </div>
+          <div class="piece-tray" id="piece-tray"></div>
+        </section>
+      </aside>
     </section>
+
+    <section class="message-bar" id="message-bar" aria-live="polite">ピースを選んで、盤面に置いてください。</section>
   </main>
+
   <script src="script.js"></script>
 </body>
 </html>

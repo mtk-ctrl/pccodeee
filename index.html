@@ -32,6 +32,7 @@
     }
 
     button { font: inherit; cursor: pointer; }
+    h1, h2, p { margin-top: 0; }
 
     .game-shell {
       width: min(1220px, calc(100% - 28px));
@@ -61,7 +62,6 @@
       text-transform: uppercase;
     }
 
-    h1, h2, p { margin-top: 0; }
     h1 { margin-bottom: 12px; font-size: clamp(3rem, 8vw, 6.4rem); line-height: .92; letter-spacing: 0; }
     h2 { margin-bottom: 0; font-size: 1.18rem; letter-spacing: 0; }
 
@@ -99,9 +99,27 @@
     .human-score strong { color: var(--human); }
     .cpu-score strong { color: var(--cpu); }
 
+    .quick-guide {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .guide-step {
+      min-height: 72px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .86);
+    }
+
+    .guide-step strong { display: block; margin-bottom: 4px; font-size: .95rem; }
+    .guide-step span { color: var(--muted); font-size: .86rem; line-height: 1.5; }
+
     .game-layout {
       display: grid;
-      grid-template-columns: minmax(560px, 1fr) 340px;
+      grid-template-columns: minmax(560px, 1fr) 360px;
       gap: 18px;
       margin-top: 18px;
     }
@@ -117,7 +135,7 @@
     .board-toolbar, .section-title { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
 
     .turn-chip {
-      min-width: 120px;
+      min-width: 132px;
       padding: 10px 12px;
       border-radius: 999px;
       background: #e5f3f2;
@@ -150,6 +168,7 @@
       box-shadow: inset 0 0 0 1px rgba(24,32,38,.06);
     }
 
+    .cell:hover { outline: 2px solid rgba(15, 139, 141, .28); }
     .cell.start-human::after, .cell.start-cpu::after {
       content: "";
       position: absolute;
@@ -175,11 +194,18 @@
       grid-auto-rows: 22px;
       gap: 4px;
       min-height: 126px;
-      margin: 16px 0;
+      margin: 16px 0 10px;
       align-content: center;
       justify-content: center;
       border-radius: 8px;
       background: #eef4f2;
+    }
+
+    .selected-help {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.55;
     }
 
     .mini-cell, .preview-cell { border-radius: 4px; }
@@ -187,7 +213,6 @@
 
     .tool-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .tool-row button, .primary-action, .piece-button {
-      min-height: 42px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: #fff;
@@ -195,19 +220,40 @@
       font-weight: 900;
     }
 
+    .tool-row button {
+      min-height: 54px;
+      padding: 8px;
+      line-height: 1.25;
+    }
+
     .tool-row button:hover, .piece-button:hover { border-color: var(--human); }
-    .primary-action { width: 100%; margin-top: 10px; background: var(--human); color: #fff; border-color: var(--human); }
+    .primary-action { width: 100%; min-height: 46px; margin-top: 10px; background: var(--human); color: #fff; border-color: var(--human); }
 
     .rules-list { display: grid; gap: 8px; margin: 14px 0 0; padding-left: 1.1rem; color: var(--muted); line-height: 1.55; }
-    .piece-tray { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
-    .piece-button { display: grid; place-items: center; min-height: 74px; padding: 6px; }
-    .piece-button.is-selected { border-color: var(--human); background: #e5f3f2; }
+    .piece-help { margin: 10px 0 0; color: var(--muted); font-size: .86rem; line-height: 1.55; }
+    .piece-tray { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+
+    .piece-button {
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 10px;
+      align-items: center;
+      min-height: 82px;
+      padding: 9px;
+      text-align: left;
+    }
+
+    .piece-button.is-selected { border-color: var(--human); background: #e5f3f2; box-shadow: inset 0 0 0 2px rgba(15, 139, 141, .18); }
     .piece-button.is-used { opacity: .35; cursor: not-allowed; }
     .mini-piece { display: grid; grid-template-columns: repeat(5, 9px); grid-auto-rows: 9px; gap: 2px; }
+    .piece-meta strong { display: block; font-size: .9rem; }
+    .piece-meta span { display: block; margin-top: 2px; color: var(--muted); font-size: .78rem; }
+    .selected-badge { display: none; margin-top: 4px; color: var(--human-dark); font-size: .74rem; font-weight: 900; }
+    .piece-button.is-selected .selected-badge { display: block; }
     .message-bar { margin-top: 18px; padding: 16px 18px; color: var(--ink); font-weight: 800; }
 
     @media (max-width: 980px) {
-      .game-header, .game-layout { grid-template-columns: 1fr; }
+      .game-header, .game-layout, .quick-guide { grid-template-columns: 1fr; }
       .game-header { display: grid; align-items: start; }
       .scoreboard { width: min(100%, 360px); }
     }
@@ -217,8 +263,9 @@
       .game-header, .board-panel, .side-panel { padding: 12px; }
       .board { gap: 2px; padding: 5px; }
       .cell { border-radius: 3px; }
-      .piece-tray { grid-template-columns: repeat(2, 1fr); }
+      .piece-tray { grid-template-columns: 1fr; }
       .tool-row { grid-template-columns: 1fr; }
+      .piece-button { grid-template-columns: 62px 1fr; }
     }
   </style>
 </head>
@@ -236,25 +283,38 @@
       </div>
     </header>
 
+    <section class="quick-guide" aria-label="遊び方の流れ">
+      <div class="guide-step"><strong>1. 手駒を選ぶ</strong><span>右側の手駒カードをクリックします。</span></div>
+      <div class="guide-step"><strong>2. 向きを決める</strong><span>右回転・左右反転で形を合わせます。</span></div>
+      <div class="guide-step"><strong>3. 盤面に置く</strong><span>青い角につながるマスをクリックします。</span></div>
+    </section>
+
     <section class="game-layout" aria-label="Corner Blocks game">
       <section class="board-panel">
         <div class="board-toolbar">
           <div><p class="eyebrow">Board</p><h2 id="turn-label">あなたの番</h2></div>
-          <div class="turn-chip" id="turn-chip">Place a piece</div>
+          <div class="turn-chip" id="turn-chip">配置する</div>
         </div>
         <div class="board" id="board" aria-label="14 x 14 の盤面"></div>
       </section>
 
       <aside class="side-panel">
         <section class="panel-section">
-          <div class="section-title"><p class="eyebrow">Piece</p><h2 id="selected-piece-name">選択中</h2></div>
+          <div class="section-title"><p class="eyebrow">Selected</p><h2 id="selected-piece-name">選択中</h2></div>
           <div class="piece-preview" id="piece-preview" aria-label="選択中のピース"></div>
+          <p class="selected-help" id="selected-help">この形を盤面に置きます。置ける場所は青く、置けない場所は赤く表示されます。</p>
           <div class="tool-row" aria-label="操作">
-            <button type="button" id="rotate-piece">回転</button>
-            <button type="button" id="flip-piece">反転</button>
-            <button type="button" id="pass-turn">パス</button>
+            <button type="button" id="rotate-piece">右に<br>90度回転</button>
+            <button type="button" id="flip-piece">左右<br>反転</button>
+            <button type="button" id="pass-turn">置けない<br>のでパス</button>
           </div>
           <button type="button" class="primary-action" id="new-game">新しいゲーム</button>
+        </section>
+
+        <section class="panel-section pieces-section">
+          <div class="section-title"><p class="eyebrow">Tray</p><h2>手駒を選ぶ</h2></div>
+          <p class="piece-help">カード全体がボタンです。選んだ手駒は緑色になります。</p>
+          <div class="piece-tray" id="piece-tray"></div>
         </section>
 
         <section class="panel-section">
@@ -266,15 +326,10 @@
             <li>置けなくなったらパス。多く埋めた方が勝ち。</li>
           </ul>
         </section>
-
-        <section class="panel-section pieces-section">
-          <div class="section-title"><p class="eyebrow">Tray</p><h2>手駒</h2></div>
-          <div class="piece-tray" id="piece-tray"></div>
-        </section>
       </aside>
     </section>
 
-    <section class="message-bar" id="message-bar" aria-live="polite">ピースを選んで、盤面に置いてください。</section>
+    <section class="message-bar" id="message-bar" aria-live="polite">右側の手駒を選んで、盤面に置いてください。</section>
   </main>
 
   <script>
@@ -285,24 +340,25 @@
       { id: 1, name: "CPU", className: "cpu", start: { x: BOARD_SIZE - 1, y: 0 } },
     ];
     const pieces = [
-      { id: "solo", name: "Solo", cells: [[0, 0]] },
-      { id: "duo", name: "Duo", cells: [[0, 0], [1, 0]] },
-      { id: "line3", name: "Line 3", cells: [[0, 0], [1, 0], [2, 0]] },
-      { id: "corner3", name: "Corner 3", cells: [[0, 0], [0, 1], [1, 1]] },
-      { id: "square4", name: "Square", cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
-      { id: "line4", name: "Line 4", cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
-      { id: "tee4", name: "Tee", cells: [[0, 0], [1, 0], [2, 0], [1, 1]] },
-      { id: "ell4", name: "Ell", cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
-      { id: "zig4", name: "Zig", cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
-      { id: "plus5", name: "Plus", cells: [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]] },
-      { id: "cup5", name: "Cup", cells: [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1]] },
-      { id: "hook5", name: "Hook", cells: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 3]] },
+      { id: "solo", name: "Solo", label: "1マス", cells: [[0, 0]] },
+      { id: "duo", name: "Duo", label: "2マス", cells: [[0, 0], [1, 0]] },
+      { id: "line3", name: "Line 3", label: "3マス直線", cells: [[0, 0], [1, 0], [2, 0]] },
+      { id: "corner3", name: "Corner 3", label: "3マス角", cells: [[0, 0], [0, 1], [1, 1]] },
+      { id: "square4", name: "Square", label: "4マス四角", cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
+      { id: "line4", name: "Line 4", label: "4マス直線", cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+      { id: "tee4", name: "Tee", label: "4マスT字", cells: [[0, 0], [1, 0], [2, 0], [1, 1]] },
+      { id: "ell4", name: "Ell", label: "4マスL字", cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
+      { id: "zig4", name: "Zig", label: "4マスZ字", cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
+      { id: "plus5", name: "Plus", label: "5マス十字", cells: [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]] },
+      { id: "cup5", name: "Cup", label: "5マスU字", cells: [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1]] },
+      { id: "hook5", name: "Hook", label: "5マス長L字", cells: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 3]] },
     ];
 
     const boardEl = document.querySelector("#board");
     const trayEl = document.querySelector("#piece-tray");
     const previewEl = document.querySelector("#piece-preview");
     const selectedNameEl = document.querySelector("#selected-piece-name");
+    const selectedHelpEl = document.querySelector("#selected-help");
     const messageEl = document.querySelector("#message-bar");
     const turnLabelEl = document.querySelector("#turn-label");
     const turnChipEl = document.querySelector("#turn-chip");
@@ -447,7 +503,8 @@
     function renderPiecePreview() {
       const piece = pieces.find((item) => item.id === selectedPieceId) || pieces[0];
       const cells = new Set(transformCells(piece).map(([x, y]) => cellKey(x + 1, y + 1)));
-      selectedNameEl.textContent = piece ? piece.name : "なし";
+      selectedNameEl.textContent = piece ? `${piece.name} / ${piece.label}` : "なし";
+      selectedHelpEl.textContent = piece ? `${piece.name} を選択中。右回転・左右反転で向きを変えて、盤面の置ける場所をクリックします。` : "手駒を選んでください。";
       previewEl.innerHTML = "";
       for (let y = 0; y < 5; y += 1) {
         for (let x = 0; x < 5; x += 1) {
@@ -471,7 +528,7 @@
       trayEl.innerHTML = pieces.map((piece) => {
         const used = usedPieces[0].has(piece.id);
         const selected = selectedPieceId === piece.id;
-        return `<button type="button" class="piece-button${selected ? " is-selected" : ""}${used ? " is-used" : ""}" data-piece="${piece.id}" ${used ? "disabled" : ""} title="${piece.name}">${miniPiece(piece)}</button>`;
+        return `<button type="button" class="piece-button${selected ? " is-selected" : ""}${used ? " is-used" : ""}" data-piece="${piece.id}" ${used ? "disabled" : ""} title="${piece.name}" aria-label="${piece.name} ${piece.label} を選ぶ">${miniPiece(piece)}<span class="piece-meta"><strong>${piece.name}</strong><span>${piece.label}</span><span class="selected-badge">選択中</span></span></button>`;
       }).join("");
     }
 
@@ -487,7 +544,7 @@
       humanScoreEl.textContent = scoreFor(0);
       cpuScoreEl.textContent = scoreFor(1);
       turnLabelEl.textContent = gameOver ? "ゲーム終了" : currentPlayer === 0 ? "あなたの番" : "CPUの番";
-      turnChipEl.textContent = gameOver ? winnerText() : currentPlayer === 0 ? "Place a piece" : "Thinking";
+      turnChipEl.textContent = gameOver ? winnerText() : currentPlayer === 0 ? "配置する" : "CPU思考中";
     }
 
     function render() { renderBoard(); renderTray(); renderPiecePreview(); renderStatus(); }
@@ -515,7 +572,7 @@
           switchTurn();
           return;
         }
-        setMessage("あなたの番です。角でつながる場所を探してください。");
+        setMessage("あなたの番です。右側で手駒を選び、青く表示される場所に置いてください。");
         render();
       } else {
         setMessage("CPUが考えています。");
@@ -574,7 +631,7 @@
       usedPieces = [new Set(), new Set()];
       consecutivePasses = 0;
       gameOver = false;
-      setMessage("ピースを選んで、盤面に置いてください。");
+      setMessage("右側の手駒を選んで、盤面に置いてください。最初は左下の丸い印を埋めます。");
       render();
     }
 
@@ -598,12 +655,13 @@
       selectedPieceId = button.dataset.piece;
       rotation = 0;
       flipped = false;
-      setMessage(`${pieces.find((piece) => piece.id === selectedPieceId).name} を選びました。`);
+      const piece = pieces.find((item) => item.id === selectedPieceId);
+      setMessage(`${piece.name} を選びました。必要なら右回転・左右反転してから盤面に置いてください。`);
       render();
     });
 
-    document.querySelector("#rotate-piece").addEventListener("click", () => { if (!gameOver && currentPlayer === 0) { rotation = (rotation + 1) % 4; render(); } });
-    document.querySelector("#flip-piece").addEventListener("click", () => { if (!gameOver && currentPlayer === 0) { flipped = !flipped; render(); } });
+    document.querySelector("#rotate-piece").addEventListener("click", () => { if (!gameOver && currentPlayer === 0) { rotation = (rotation + 1) % 4; setMessage("ピースを右に90度回転しました。"); render(); } });
+    document.querySelector("#flip-piece").addEventListener("click", () => { if (!gameOver && currentPlayer === 0) { flipped = !flipped; setMessage("ピースを左右反転しました。"); render(); } });
     document.querySelector("#pass-turn").addEventListener("click", passTurn);
     document.querySelector("#new-game").addEventListener("click", newGame);
 

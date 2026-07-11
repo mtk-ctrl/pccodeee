@@ -1,254 +1,427 @@
-const yen = new Intl.NumberFormat("ja-JP", {
-  style: "currency",
-  currency: "JPY",
-  maximumFractionDigits: 0,
-});
+const BOARD_SIZE = 14;
+const EMPTY = -1;
 
-const parts = {
-  cpu: [
-    { name: "Core i3 / Ryzen 3", price: 18000, score: 48, power: 65, tags: ["daily", "study"] },
-    { name: "Core i5 / Ryzen 5", price: 34000, score: 70, power: 95, tags: ["daily", "game", "study"] },
-    { name: "Core i7 / Ryzen 7", price: 56000, score: 86, power: 125, tags: ["game", "creative"] },
-    { name: "Core i9 / Ryzen 9", price: 84000, score: 98, power: 170, tags: ["creative"] },
-  ],
-  gpu: [
-    { name: "内蔵GPU", price: 0, score: 25, power: 0, tags: ["daily", "study"] },
-    { name: "Entry GPU", price: 32000, score: 55, power: 115, tags: ["study", "game"] },
-    { name: "Mid GPU", price: 68000, score: 78, power: 190, tags: ["game", "creative"] },
-    { name: "High GPU", price: 118000, score: 96, power: 285, tags: ["game", "creative"] },
-  ],
-  ram: [
-    { name: "16GB", price: 9000, score: 55, power: 8, tags: ["daily", "study"] },
-    { name: "32GB", price: 18000, score: 80, power: 12, tags: ["game", "study", "creative"] },
-    { name: "64GB", price: 36000, score: 96, power: 18, tags: ["creative"] },
-  ],
-  storage: [
-    { name: "512GB SSD", price: 7000, score: 52, power: 4, tags: ["daily"] },
-    { name: "1TB SSD", price: 13000, score: 76, power: 5, tags: ["game", "study"] },
-    { name: "2TB SSD", price: 25000, score: 92, power: 7, tags: ["creative", "game"] },
-  ],
-  caseType: [
-    { name: "Mini", price: 11000, score: 62, power: 0, tags: ["compact"] },
-    { name: "Airflow", price: 15000, score: 82, power: 0, tags: ["game", "creative"] },
-    { name: "Silent", price: 19000, score: 78, power: 0, tags: ["daily", "study"] },
-  ],
-};
+const players = [
+  { id: 0, name: "あなた", className: "human", start: { x: 0, y: BOARD_SIZE - 1 } },
+  { id: 1, name: "CPU", className: "cpu", start: { x: BOARD_SIZE - 1, y: 0 } },
+];
 
-const presets = {
-  balanced: { purpose: "study", budget: 160000, cpu: 1, gpu: 1, ram: 1, storage: 1, caseType: 1 },
-  gaming: { purpose: "game", budget: 240000, cpu: 2, gpu: 2, ram: 1, storage: 2, caseType: 1 },
-  creator: { purpose: "creative", budget: 300000, cpu: 3, gpu: 2, ram: 2, storage: 2, caseType: 1 },
-  compact: { purpose: "daily", budget: 110000, cpu: 1, gpu: 0, ram: 0, storage: 1, caseType: 0 },
-};
+const pieces = [
+  { id: "solo", name: "Solo", cells: [[0, 0]] },
+  { id: "duo", name: "Duo", cells: [[0, 0], [1, 0]] },
+  { id: "line3", name: "Line 3", cells: [[0, 0], [1, 0], [2, 0]] },
+  { id: "corner3", name: "Corner 3", cells: [[0, 0], [0, 1], [1, 1]] },
+  { id: "square4", name: "Square", cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
+  { id: "line4", name: "Line 4", cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+  { id: "tee4", name: "Tee", cells: [[0, 0], [1, 0], [2, 0], [1, 1]] },
+  { id: "ell4", name: "Ell", cells: [[0, 0], [0, 1], [0, 2], [1, 2]] },
+  { id: "zig4", name: "Zig", cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
+  { id: "plus5", name: "Plus", cells: [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]] },
+  { id: "you5", name: "Cup", cells: [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1]] },
+  { id: "hook5", name: "Hook", cells: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 3]] },
+];
 
-const state = { ...presets.balanced };
-const selects = ["cpu", "gpu", "ram", "storage", "caseType"];
+const boardEl = document.querySelector("#board");
+const trayEl = document.querySelector("#piece-tray");
+const previewEl = document.querySelector("#piece-preview");
+const selectedNameEl = document.querySelector("#selected-piece-name");
+const messageEl = document.querySelector("#message-bar");
+const turnLabelEl = document.querySelector("#turn-label");
+const turnChipEl = document.querySelector("#turn-chip");
+const humanScoreEl = document.querySelector("#human-score");
+const cpuScoreEl = document.querySelector("#cpu-score");
 
-const form = document.querySelector("#build-form");
-const budget = document.querySelector("#budget");
-const budgetValue = document.querySelector("#budget-value");
-const purpose = document.querySelector("#purpose");
-const score = document.querySelector("#score");
-const scoreGrade = document.querySelector("#score-grade");
-const scoreRing = document.querySelector("#score-ring");
-const totalPrice = document.querySelector("#total-price");
-const power = document.querySelector("#power");
-const comfort = document.querySelector("#comfort");
-const bars = document.querySelector("#bars");
-const advice = document.querySelector("#advice");
-const savedList = document.querySelector("#saved-list");
+let board;
+let currentPlayer;
+let selectedPieceId;
+let rotation;
+let flipped;
+let hoverCell;
+let usedPieces;
+let consecutivePasses;
+let gameOver;
 
-function fillSelects() {
-  selects.forEach((key) => {
-    const select = document.querySelector(`#${key}`);
-    select.innerHTML = parts[key]
-      .map((part, index) => `<option value="${index}">${part.name} - ${yen.format(part.price)}</option>`)
-      .join("");
+function createBoard() {
+  return Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(EMPTY));
+}
+
+function normalize(cells) {
+  const minX = Math.min(...cells.map(([x]) => x));
+  const minY = Math.min(...cells.map(([, y]) => y));
+  return cells
+    .map(([x, y]) => [x - minX, y - minY])
+    .sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+}
+
+function transformCells(piece, pieceRotation = rotation, pieceFlipped = flipped) {
+  let cells = piece.cells.map(([x, y]) => [pieceFlipped ? -x : x, y]);
+  for (let index = 0; index < pieceRotation; index += 1) {
+    cells = cells.map(([x, y]) => [-y, x]);
+  }
+  return normalize(cells);
+}
+
+function cellKey(x, y) {
+  return `${x},${y}`;
+}
+
+function uniqueTransforms(piece) {
+  const seen = new Set();
+  const transforms = [];
+  [false, true].forEach((isFlipped) => {
+    [0, 1, 2, 3].forEach((turns) => {
+      const cells = transformCells(piece, turns, isFlipped);
+      const key = cells.map(([x, y]) => cellKey(x, y)).join("|");
+      if (!seen.has(key)) {
+        seen.add(key);
+        transforms.push(cells);
+      }
+    });
   });
+  return transforms;
 }
 
-function selectedParts() {
-  return selects.map((key) => ({ key, ...parts[key][Number(state[key])] }));
+function placedCells(cells, x, y) {
+  return cells.map(([cellX, cellY]) => ({ x: x + cellX, y: y + cellY }));
 }
 
-function calculate() {
-  const chosen = selectedParts();
-  const partTotal = chosen.reduce((sum, part) => sum + part.price, 0);
-  const baseCost = 42000;
-  const total = partTotal + baseCost;
-  const rawScore = Math.round(chosen.reduce((sum, part) => sum + part.score, 0) / chosen.length);
-  const matchBonus = chosen.reduce((sum, part) => sum + (part.tags.includes(state.purpose) ? 4 : 0), 0);
-  const overBudget = Math.max(0, total - state.budget);
-  const budgetPenalty = Math.min(18, Math.round(overBudget / 10000) * 2);
-  const finalScore = Math.max(25, Math.min(99, rawScore + matchBonus - budgetPenalty));
-  const watts = chosen.reduce((sum, part) => sum + part.power, 85);
-  return { chosen, total, finalScore, watts, overBudget };
+function hasAnyPiece(playerId) {
+  return board.some((row) => row.some((value) => value === playerId));
 }
 
-function gradeFor(value) {
-  if (value >= 90) return "S";
-  if (value >= 78) return "A";
-  if (value >= 64) return "B";
-  if (value >= 50) return "C";
-  return "D";
+function inside(x, y) {
+  return x >= 0 && y >= 0 && x < BOARD_SIZE && y < BOARD_SIZE;
 }
 
-function comfortText(value) {
-  if (value >= 90) return "かなり余裕";
-  if (value >= 78) return "快適";
-  if (value >= 64) return "いい感じ";
-  if (value >= 50) return "用途しぼりめ";
-  return "要見直し";
-}
-
-function barRows(result) {
-  const cpu = parts.cpu[state.cpu].score;
-  const gpu = parts.gpu[state.gpu].score;
-  const memory = Math.round((parts.ram[state.ram].score + parts.storage[state.storage].score) / 2);
-  const cooling = Math.round((parts.caseType[state.caseType].score + Math.max(25, 100 - result.watts / 5)) / 2);
-  const rows = [
-    ["CPU", cpu],
-    ["GPU", gpu],
-    ["メモリ/保存", memory],
-    ["冷却余裕", cooling],
-  ];
-  return rows
-    .map(([label, value]) => `
-      <div class="bar-row">
-        <div class="bar-label"><span>${label}</span><span>${Math.round(value)}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width: ${Math.min(100, value)}%"></div></div>
-      </div>
-    `)
-    .join("");
-}
-
-function adviceFor(result) {
-  const notes = [];
-  if (result.overBudget > 0) {
-    notes.push(`予算を${yen.format(result.overBudget)}超えています。GPUかCPUを1段下げると整いやすいです。`);
-  } else {
-    notes.push(`予算内に収まっています。残り${yen.format(state.budget - result.total)}はモニターやキーボードに回せます。`);
+function validatePlacement(playerId, cells, x, y) {
+  const absoluteCells = placedCells(cells, x, y);
+  if (absoluteCells.some((cell) => !inside(cell.x, cell.y) || board[cell.y][cell.x] !== EMPTY)) {
+    return { ok: false, reason: "そこには置けません。" };
   }
-  if (state.purpose === "game" && parts.gpu[state.gpu].score < 70) {
-    notes.push("ゲーム用途ならGPUを優先すると体感が伸びます。");
+
+  const sideDirections = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const cornerDirections = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+  const hasStarted = hasAnyPiece(playerId);
+  let touchesCorner = false;
+  let coversStart = false;
+
+  for (const cell of absoluteCells) {
+    const start = players[playerId].start;
+    if (cell.x === start.x && cell.y === start.y) {
+      coversStart = true;
+    }
+
+    for (const [dx, dy] of sideDirections) {
+      const nextX = cell.x + dx;
+      const nextY = cell.y + dy;
+      if (inside(nextX, nextY) && board[nextY][nextX] === playerId) {
+        return { ok: false, reason: "自分の色とは辺で接してはいけません。" };
+      }
+    }
+
+    for (const [dx, dy] of cornerDirections) {
+      const nextX = cell.x + dx;
+      const nextY = cell.y + dy;
+      if (inside(nextX, nextY) && board[nextY][nextX] === playerId) {
+        touchesCorner = true;
+      }
+    }
   }
-  if (state.purpose === "creative" && parts.ram[state.ram].score < 80) {
-    notes.push("制作用途なら32GB以上のメモリが安心です。");
+
+  if (!hasStarted && !coversStart) {
+    return { ok: false, reason: "最初のピースはスタート角に置きます。" };
   }
-  if (result.watts > 430) {
-    notes.push("消費電力が高めなので、電源容量とケースの通気を強めに見てください。");
+
+  if (hasStarted && !touchesCorner) {
+    return { ok: false, reason: "自分の色と角でつながる場所に置きます。" };
   }
-  return notes.join(" ");
+
+  return { ok: true, reason: "置けます。" };
+}
+
+function placePiece(playerId, pieceId, cells, x, y) {
+  placedCells(cells, x, y).forEach((cell) => {
+    board[cell.y][cell.x] = playerId;
+  });
+  usedPieces[playerId].add(pieceId);
+  consecutivePasses = 0;
+}
+
+function scoreFor(playerId) {
+  return board.flat().filter((value) => value === playerId).length;
+}
+
+function availablePieceIds(playerId) {
+  return pieces.map((piece) => piece.id).filter((id) => !usedPieces[playerId].has(id));
+}
+
+function findFirstAvailablePiece(playerId) {
+  return availablePieceIds(playerId)[0] || null;
+}
+
+function hasValidMove(playerId) {
+  return Boolean(findBestMove(playerId, false));
+}
+
+function findBestMove(playerId, withRandomness = true) {
+  let bestMove = null;
+  for (const piece of pieces) {
+    if (usedPieces[playerId].has(piece.id)) continue;
+    for (const cells of uniqueTransforms(piece)) {
+      for (let y = 0; y < BOARD_SIZE; y += 1) {
+        for (let x = 0; x < BOARD_SIZE; x += 1) {
+          const result = validatePlacement(playerId, cells, x, y);
+          if (!result.ok) continue;
+          const centerBias = 12 - Math.abs(BOARD_SIZE / 2 - x) - Math.abs(BOARD_SIZE / 2 - y);
+          const randomTie = withRandomness ? Math.random() * 1.5 : 0;
+          const value = cells.length * 10 + centerBias + randomTie;
+          if (!bestMove || value > bestMove.value) {
+            bestMove = { pieceId: piece.id, cells, x, y, value };
+          }
+        }
+      }
+    }
+  }
+  return bestMove;
+}
+
+function previewSet() {
+  if (gameOver || currentPlayer !== 0 || !selectedPieceId || !hoverCell) {
+    return { cells: new Set(), valid: false };
+  }
+  const piece = pieces.find((item) => item.id === selectedPieceId);
+  const cells = transformCells(piece);
+  const validation = validatePlacement(0, cells, hoverCell.x, hoverCell.y);
+  const keys = new Set(placedCells(cells, hoverCell.x, hoverCell.y).map((cell) => cellKey(cell.x, cell.y)));
+  return { cells: keys, valid: validation.ok };
+}
+
+function renderBoard() {
+  const preview = previewSet();
+  boardEl.innerHTML = "";
+  for (let y = 0; y < BOARD_SIZE; y += 1) {
+    for (let x = 0; x < BOARD_SIZE; x += 1) {
+      const button = document.createElement("button");
+      const value = board[y][x];
+      button.type = "button";
+      button.className = "cell";
+      button.dataset.x = x;
+      button.dataset.y = y;
+      button.setAttribute("aria-label", `${x + 1}列 ${y + 1}行`);
+      if (value !== EMPTY) button.classList.add(players[value].className);
+      if (x === players[0].start.x && y === players[0].start.y) button.classList.add("start-human");
+      if (x === players[1].start.x && y === players[1].start.y) button.classList.add("start-cpu");
+      if (preview.cells.has(cellKey(x, y)) && value === EMPTY) {
+        button.classList.add(preview.valid ? "preview-valid" : "preview-invalid");
+      }
+      boardEl.append(button);
+    }
+  }
+}
+
+function renderPiecePreview() {
+  const piece = pieces.find((item) => item.id === selectedPieceId) || pieces[0];
+  const cells = new Set(transformCells(piece).map(([x, y]) => cellKey(x + 1, y + 1)));
+  selectedNameEl.textContent = piece ? piece.name : "なし";
+  previewEl.innerHTML = "";
+  for (let y = 0; y < 5; y += 1) {
+    for (let x = 0; x < 5; x += 1) {
+      const cell = document.createElement("span");
+      cell.className = `preview-cell${cells.has(cellKey(x, y)) ? " on" : ""}`;
+      previewEl.append(cell);
+    }
+  }
+}
+
+function miniPiece(piece) {
+  const cells = new Set(normalize(piece.cells).map(([x, y]) => cellKey(x + 1, y + 1)));
+  let html = '<span class="mini-piece" aria-hidden="true">';
+  for (let y = 0; y < 5; y += 1) {
+    for (let x = 0; x < 5; x += 1) {
+      html += `<span class="mini-cell${cells.has(cellKey(x, y)) ? " on" : ""}"></span>`;
+    }
+  }
+  return `${html}</span>`;
+}
+
+function renderTray() {
+  trayEl.innerHTML = pieces.map((piece) => {
+    const used = usedPieces[0].has(piece.id);
+    const selected = selectedPieceId === piece.id;
+    return `
+      <button type="button" class="piece-button${selected ? " is-selected" : ""}${used ? " is-used" : ""}" data-piece="${piece.id}" ${used ? "disabled" : ""} title="${piece.name}">
+        ${miniPiece(piece)}
+      </button>
+    `;
+  }).join("");
+}
+
+function renderStatus() {
+  humanScoreEl.textContent = scoreFor(0);
+  cpuScoreEl.textContent = scoreFor(1);
+  turnLabelEl.textContent = gameOver ? "ゲーム終了" : currentPlayer === 0 ? "あなたの番" : "CPUの番";
+  turnChipEl.textContent = gameOver ? winnerText() : currentPlayer === 0 ? "Place a piece" : "Thinking";
 }
 
 function render() {
-  const result = calculate();
-  budgetValue.textContent = yen.format(state.budget);
-  score.textContent = result.finalScore;
-  scoreGrade.textContent = gradeFor(result.finalScore);
-  scoreRing.style.setProperty("--score-progress", `${result.finalScore}%`);
-  totalPrice.textContent = yen.format(result.total);
-  power.textContent = `${result.watts}W`;
-  comfort.textContent = comfortText(result.finalScore);
-  bars.innerHTML = barRows(result);
-  advice.textContent = adviceFor(result);
-
-  purpose.value = state.purpose;
-  budget.value = state.budget;
-  selects.forEach((key) => {
-    document.querySelector(`#${key}`).value = state[key];
-  });
+  renderBoard();
+  renderTray();
+  renderPiecePreview();
+  renderStatus();
 }
 
-function applyPreset(name) {
-  Object.assign(state, presets[name]);
-  document.querySelectorAll(".preset-button").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.preset === name);
-  });
+function setMessage(text) {
+  messageEl.textContent = text;
+}
+
+function winnerText() {
+  const human = scoreFor(0);
+  const cpu = scoreFor(1);
+  if (human > cpu) return "You win";
+  if (cpu > human) return "CPU wins";
+  return "Draw";
+}
+
+function finishGame() {
+  gameOver = true;
+  const human = scoreFor(0);
+  const cpu = scoreFor(1);
+  if (human > cpu) setMessage(`勝ちです。${human} - ${cpu} であなたの方が広く置けました。`);
+  else if (cpu > human) setMessage(`CPUの勝ちです。${human} - ${cpu}。次は角を早めに広げると戦えます。`);
+  else setMessage(`引き分けです。${human} - ${cpu}。かなりいい勝負でした。`);
   render();
 }
 
-function summary() {
-  const result = calculate();
-  const chosen = result.chosen.map((part) => `${part.key}: ${part.name}`).join("\n");
-  return `PC Codee Lab\nScore: ${result.finalScore} ${gradeFor(result.finalScore)}\nTotal: ${yen.format(result.total)}\nPower: ${result.watts}W\n${chosen}`;
-}
-
-function savedBuilds() {
-  return JSON.parse(localStorage.getItem("pc-codee-builds") || "[]");
-}
-
-function storeBuilds(builds) {
-  localStorage.setItem("pc-codee-builds", JSON.stringify(builds.slice(0, 6)));
-}
-
-function renderSaved() {
-  const builds = savedBuilds();
-  if (!builds.length) {
-    savedList.innerHTML = '<div class="empty-state">まだ保存した構成はありません。</div>';
+function switchTurn() {
+  if (gameOver) return;
+  if (consecutivePasses >= 2 || (!hasValidMove(0) && !hasValidMove(1))) {
+    finishGame();
     return;
   }
-  savedList.innerHTML = builds
-    .map((build, index) => `
-      <article class="saved-card">
-        <span>${build.date}</span>
-        <strong>${build.grade} / ${build.score}点</strong>
-        <p>${build.total} - ${build.purpose}</p>
-        <button type="button" data-load="${index}">呼び出す</button>
-      </article>
-    `)
-    .join("");
+  currentPlayer = currentPlayer === 0 ? 1 : 0;
+  if (currentPlayer === 0) {
+    selectedPieceId = selectedPieceId && !usedPieces[0].has(selectedPieceId) ? selectedPieceId : findFirstAvailablePiece(0);
+    if (!hasValidMove(0)) {
+      consecutivePasses += 1;
+      setMessage("あなたは置ける場所がありません。自動でパスします。 ");
+      switchTurn();
+      return;
+    }
+    setMessage("あなたの番です。角でつながる場所を探してください。 ");
+    render();
+  } else {
+    setMessage("CPUが考えています。 ");
+    render();
+    window.setTimeout(cpuTurn, 450);
+  }
 }
 
-fillSelects();
-render();
-renderSaved();
+function handleHumanPlacement(x, y) {
+  if (gameOver || currentPlayer !== 0 || !selectedPieceId) return;
+  const piece = pieces.find((item) => item.id === selectedPieceId);
+  const cells = transformCells(piece);
+  const result = validatePlacement(0, cells, x, y);
+  if (!result.ok) {
+    setMessage(result.reason);
+    hoverCell = { x, y };
+    renderBoard();
+    return;
+  }
+  placePiece(0, selectedPieceId, cells, x, y);
+  selectedPieceId = findFirstAvailablePiece(0);
+  hoverCell = null;
+  setMessage(`${piece.name} を置きました。`);
+  switchTurn();
+}
 
-form.addEventListener("input", (event) => {
-  const { id, value } = event.target;
-  if (id === "budget") state.budget = Number(value);
-  if (id === "purpose") state.purpose = value;
-  if (selects.includes(id)) state[id] = Number(value);
-  document.querySelectorAll(".preset-button").forEach((button) => button.classList.remove("is-active"));
+function cpuTurn() {
+  if (gameOver || currentPlayer !== 1) return;
+  const move = findBestMove(1, true);
+  if (!move) {
+    consecutivePasses += 1;
+    setMessage("CPUはパスしました。 ");
+    switchTurn();
+    return;
+  }
+  placePiece(1, move.pieceId, move.cells, move.x, move.y);
+  const pieceName = pieces.find((piece) => piece.id === move.pieceId).name;
+  setMessage(`CPUが ${pieceName} を置きました。`);
+  switchTurn();
+}
+
+function passTurn() {
+  if (gameOver || currentPlayer !== 0) return;
+  consecutivePasses += 1;
+  setMessage("あなたはパスしました。 ");
+  switchTurn();
+}
+
+function newGame() {
+  board = createBoard();
+  currentPlayer = 0;
+  selectedPieceId = pieces[0].id;
+  rotation = 0;
+  flipped = false;
+  hoverCell = null;
+  usedPieces = [new Set(), new Set()];
+  consecutivePasses = 0;
+  gameOver = false;
+  setMessage("ピースを選んで、盤面に置いてください。 ");
+  render();
+}
+
+boardEl.addEventListener("mouseover", (event) => {
+  const cell = event.target.closest(".cell");
+  if (!cell) return;
+  hoverCell = { x: Number(cell.dataset.x), y: Number(cell.dataset.y) };
+  renderBoard();
+});
+
+boardEl.addEventListener("mouseleave", () => {
+  hoverCell = null;
+  renderBoard();
+});
+
+boardEl.addEventListener("click", (event) => {
+  const cell = event.target.closest(".cell");
+  if (!cell) return;
+  handleHumanPlacement(Number(cell.dataset.x), Number(cell.dataset.y));
+});
+
+trayEl.addEventListener("click", (event) => {
+  const button = event.target.closest(".piece-button");
+  if (!button || button.disabled || currentPlayer !== 0 || gameOver) return;
+  selectedPieceId = button.dataset.piece;
+  rotation = 0;
+  flipped = false;
+  setMessage(`${pieces.find((piece) => piece.id === selectedPieceId).name} を選びました。`);
   render();
 });
 
-document.querySelectorAll(".preset-button").forEach((button) => {
-  button.addEventListener("click", () => applyPreset(button.dataset.preset));
-});
-
-document.querySelector("#save-build").addEventListener("click", () => {
-  const result = calculate();
-  const builds = savedBuilds();
-  builds.unshift({
-    ...state,
-    date: new Date().toLocaleDateString("ja-JP"),
-    grade: gradeFor(result.finalScore),
-    score: result.finalScore,
-    total: yen.format(result.total),
-    purpose: purpose.options[purpose.selectedIndex].text,
-  });
-  storeBuilds(builds);
-  renderSaved();
-});
-
-document.querySelector("#copy-build").addEventListener("click", async () => {
-  await navigator.clipboard.writeText(summary());
-  advice.textContent = "構成をクリップボードにコピーしました。";
-});
-
-savedList.addEventListener("click", (event) => {
-  const index = event.target.dataset.load;
-  if (index === undefined) return;
-  const build = savedBuilds()[Number(index)];
-  Object.assign(state, {
-    purpose: build.purpose === "ゲーム" ? "game" : build.purpose === "動画・制作" ? "creative" : build.purpose === "学習・開発" ? "study" : "daily",
-    budget: build.budget,
-    cpu: build.cpu,
-    gpu: build.gpu,
-    ram: build.ram,
-    storage: build.storage,
-    caseType: build.caseType,
-  });
+document.querySelector("#rotate-piece").addEventListener("click", () => {
+  if (gameOver || currentPlayer !== 0) return;
+  rotation = (rotation + 1) % 4;
   render();
 });
+
+document.querySelector("#flip-piece").addEventListener("click", () => {
+  if (gameOver || currentPlayer !== 0) return;
+  flipped = !flipped;
+  render();
+});
+
+document.querySelector("#pass-turn").addEventListener("click", passTurn);
+document.querySelector("#new-game").addEventListener("click", newGame);
+
+window.addEventListener("keydown", (event) => {
+  if (event.key.toLowerCase() === "r") {
+    rotation = (rotation + 1) % 4;
+    render();
+  }
+  if (event.key.toLowerCase() === "f") {
+    flipped = !flipped;
+    render();
+  }
+});
+
+newGame();
